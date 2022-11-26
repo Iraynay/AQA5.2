@@ -2,39 +2,87 @@ import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.LogDetail;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.*;
 import static io.restassured.RestAssured.given;
 import static io.restassured.RestAssured.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.openqa.selenium.By.cssSelector;
 
 
 public class AuthTest {
 
-    static String name1 = DataGeneration.Auth.generateInfo("gb").getName();
-    static String password1 = DataGeneration.Auth.generateInfo("ru").getPassword();
-    private static RequestSpecification requestSpec = new RequestSpecBuilder()
-            .setBaseUri("http://localhost")
-            .setPort(9999)
-            .setAccept(ContentType.JSON)
-            .setContentType(ContentType.JSON)
-            .log(LogDetail.ALL)
-            .build();
 
+    @BeforeEach
+    void setup() {
+        open("http://localhost:9999");
+    }
 
     @Test
+    @DisplayName("Should successfully login with active registered user")
+    void shouldSuccessfulLoginIfRegisteredActiveUser() {
+        var registeredUser = DataGenerator.Registration.getRegisteredUser("active");
 
-    void setUpAll() {
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(new UserData (name1, password1, "active")) // передаём в теле объект, который будет преобразован в JSON
+        $("[name='login']").setValue(registeredUser.getLogin());
+        $("[name='password']").setValue(registeredUser.getPassword());
+        $("span .button__text").click();
+        $x("//*[contains(text(),'кабинет')]").shouldBe(visible);
 
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь относительно BaseUri отправляем запрос
+    }
 
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    @Test
+    @DisplayName("Should get error message if login with not registered user")
+    void shouldGetErrorIfNotRegisteredUser() {
+        var notRegisteredUser = DataGenerator.Registration.getUser("active");
+        $("[name='login']").setValue(notRegisteredUser.getLogin());
+        $("[name='password']").setValue(notRegisteredUser.getPassword());
+        $("span .button__text").click();
+        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
+
+    }
+
+    @Test
+    @DisplayName("Should get error message if login with blocked registered user")
+    void shouldGetErrorIfBlockedUser() {
+        var blockedUser = DataGenerator.Registration.getRegisteredUser("blocked");
+        $("[name='login']").setValue(blockedUser.getLogin());
+        $("[name='password']").setValue(blockedUser.getPassword());
+        $("span .button__text").click();
+        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
+        String text = $x("//div[@class='notification__content']").getText();
+        assertEquals("Ошибка! Пользователь заблокирован", text.trim());
+
+    }
+
+    @Test
+    @DisplayName("Should get error message if login with wrong login")
+    void shouldGetErrorIfWrongLogin() {
+        var registeredUser = DataGenerator.Registration.getRegisteredUser("active");
+        var wrongLogin = DataGenerator.getRandomLogin();
+        $("[name='login']").setValue(wrongLogin);
+        $("[name='password']").setValue(registeredUser.getPassword());
+        $("span .button__text").click();
+        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
+
+
+    }
+
+    @Test
+    @DisplayName("Should get error message if login with wrong password")
+    void shouldGetErrorIfWrongPassword() {
+        var registeredUser = DataGenerator.Registration.getRegisteredUser("active");
+        var wrongPassword = DataGenerator.getRandomPassword();
+        $("[name='login']").setValue(registeredUser.getLogin());
+        $("[name='password']").setValue(wrongPassword);
+        $("span .button__text").click();
+        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
+
     }
 
 
-    }
+}
 
