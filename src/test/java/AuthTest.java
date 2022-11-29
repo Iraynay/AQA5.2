@@ -1,10 +1,14 @@
+import com.github.javafaker.Faker;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.LogDetail;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.Locale;
 
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.*;
@@ -30,7 +34,7 @@ public class AuthTest {
         $("[name='login']").setValue(registeredUser.getLogin());
         $("[name='password']").setValue(registeredUser.getPassword());
         $("span .button__text").click();
-        $x("//*[contains(text(),'кабинет')]").shouldBe(visible);
+        $x("//*[contains(text(),'кабинет')]").shouldHave(visible);
 
     }
 
@@ -41,7 +45,9 @@ public class AuthTest {
         $("[name='login']").setValue(notRegisteredUser.getLogin());
         $("[name='password']").setValue(notRegisteredUser.getPassword());
         $("span .button__text").click();
-        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
+        $x("//*[@data-test-id='error-notification']").shouldHave(visible);
+        String text = $x("//div[@class='notification__content']").getText();
+        assertEquals("Ошибка! Неверно указан логин или пароль", text.trim());
 
     }
 
@@ -52,7 +58,7 @@ public class AuthTest {
         $("[name='login']").setValue(blockedUser.getLogin());
         $("[name='password']").setValue(blockedUser.getPassword());
         $("span .button__text").click();
-        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
+        $x("//*[@data-test-id='error-notification']").shouldHave(visible);
         String text = $x("//div[@class='notification__content']").getText();
         assertEquals("Ошибка! Пользователь заблокирован", text.trim());
 
@@ -66,7 +72,9 @@ public class AuthTest {
         $("[name='login']").setValue(wrongLogin);
         $("[name='password']").setValue(registeredUser.getPassword());
         $("span .button__text").click();
-        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
+        $x("//*[@data-test-id='error-notification']").shouldHave(visible);
+        String text = $x("//div[@class='notification__content']").getText();
+        assertEquals("Ошибка! Неверно указан логин или пароль", text.trim());
 
 
     }
@@ -75,12 +83,13 @@ public class AuthTest {
     @DisplayName("Should get error message if login with wrong password")
     void shouldGetErrorIfWrongPassword() {
         var registeredUser = DataGenerator.Registration.getRegisteredUser("active");
-        var wrongPassword = DataGenerator.getRandomPassword();
+       var wrongPassword = DataGenerator.getRandomPassword();
         $("[name='login']").setValue(registeredUser.getLogin());
         $("[name='password']").setValue(wrongPassword);
         $("span .button__text").click();
-        $x("//*[@data-test-id='error-notification']").shouldBe(visible);
-
+        $x("//*[@data-test-id='error-notification']").shouldHave(visible);
+        String text = $x("//div[@class='notification__content']").getText();
+        assertEquals("Ошибка! Неверно указан логин или пароль", text.trim());
     }
 
 
